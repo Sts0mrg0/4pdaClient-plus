@@ -96,7 +96,7 @@ public class ThemeQuoteEditor extends DialogFragment implements View.OnClickList
                 .customView(v,false)
                 .positiveText(R.string.insert)
                 .onPositive((dialog1, which) -> ((ThemeFragment) getActivity()
-                        .getSupportFragmentManager().findFragmentByTag(parentTag)).insertTextToPost(txtBody.getText().toString(), -1))
+                        .getSupportFragmentManager().findFragmentByTag(parentTag)).insertTextToPost(txtBody.getText().toString()))
 
                 .negativeText(R.string.cancel)
                 .build();

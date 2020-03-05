@@ -29,12 +29,12 @@ import kotlin.math.max
 
 class ForPdaVersionNotifier(
         notifiersManager: NotifiersManager,
-        periodInHours: Int,
+        period: Int,
         /**
-         * Только проверка версий. Если false, то еще проверяются notification, warnings
+         * Только проверка версий. Сообщение о результате в любом случае
          */
         private val checkVersionOnly: Boolean
-) : MainNotifier(notifiersManager, "ForPdaVersionNotifier", periodInHours) {
+) : MainNotifier(notifiersManager, "ForPdaVersionNotifier", period) {
 
     fun start(context: Context) {
         if (!isTime)
@@ -46,7 +46,7 @@ class ForPdaVersionNotifier(
     private fun checkVersionFromGithub(context: Context) {
         val handler = Handler()
         Thread {
-            var currentVersion = appVersion
+            var currentVersion = getAppVersion()
             currentVersion = currentVersion.trim { it <= ' ' }
             val link = "https://raw.githubusercontent.com/slartus/4pdaClient-plus/master/updateinfo.json"
             try {

@@ -62,8 +62,4 @@ public class Functions {
         }
         return null;
     }
-
-    public static Date parseForumDateTime(String dateTime) {
-        return parseForumDateTime(dateTime, getToday(), getYesterToday());
-    }
 }

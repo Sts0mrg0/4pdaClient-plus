@@ -195,7 +195,7 @@ public class TopicApi {
             item.setAdditionDate(Functions.parseForumDateTime(m.group(5).replace("Добавлено ", ""), today, yesterday));
             item.setFileSize(FileUtils.parseFileSize(m.group(6)));
             item.setPostId(m.group(7));
-            res.add( item);// обратная сортировка
+            res.add(0, item);// обратная сортировка
         }
 
         return res;

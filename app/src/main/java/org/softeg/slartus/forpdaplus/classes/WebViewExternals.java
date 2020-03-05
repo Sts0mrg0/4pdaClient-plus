@@ -11,7 +11,6 @@ import android.webkit.WebView;
 import org.softeg.slartus.forpdacommon.Connectivity;
 import org.softeg.slartus.forpdacommon.ExtPreferences;
 import org.softeg.slartus.forpdaplus.App;
-import org.softeg.slartus.forpdaplus.AppTheme;
 import org.softeg.slartus.forpdaplus.fragments.topic.ThemeFragment;
 
 /**
@@ -73,7 +72,7 @@ public class WebViewExternals {
 
     public void setWebViewSettings(Boolean loadImagesAutomaticallyAlways) {
         disableWebViewCache();
-        getWebView().setBackgroundColor(AppTheme.getThemeStyleWebViewBackground());
+        getWebView().setBackgroundColor(App.getInstance().getThemeStyleWebViewBackground());
         //getWebView().loadData("<html><head></head><body bgcolor=" + App.getInstance().getCurrentBackgroundColorHtml() + "></body></html>", "text/html", "UTF-8");
 
         //getWebView().getSettings().setLoadsImagesAutomatically(m_LoadsImagesAutomatically);

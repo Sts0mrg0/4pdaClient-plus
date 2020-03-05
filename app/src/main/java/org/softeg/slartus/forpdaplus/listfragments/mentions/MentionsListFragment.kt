@@ -23,14 +23,13 @@ import android.widget.Toast
 import com.afollestad.materialdialogs.MaterialDialog
 import com.nineoldandroids.view.ViewPropertyAnimator
 import kotlinx.android.synthetic.main.fragment_mentions_list.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.softeg.slartus.forpdaapi.parsers.MentionsParser
 import org.softeg.slartus.forpdaapi.vo.MentionsResult
 import org.softeg.slartus.forpdacommon.FileUtils
-import org.softeg.slartus.forpdaplus.*
+import org.softeg.slartus.forpdaplus.App
+import org.softeg.slartus.forpdaplus.Client
+import org.softeg.slartus.forpdaplus.IntentActivity
+import org.softeg.slartus.forpdaplus.R
 import org.softeg.slartus.forpdaplus.classes.AdvWebView
 import org.softeg.slartus.forpdaplus.classes.ForumUser
 import org.softeg.slartus.forpdaplus.classes.SaveHtml
@@ -39,13 +38,12 @@ import org.softeg.slartus.forpdaplus.classes.common.ExtUrl
 import org.softeg.slartus.forpdaplus.common.AppLog
 import org.softeg.slartus.forpdaplus.fragments.WebViewFragment
 import org.softeg.slartus.forpdaplus.prefs.Preferences
-import org.softeg.slartus.forpdaplus.repositories.InternetConnection
+import java.lang.ref.WeakReference
 import java.util.*
 import java.util.regex.Pattern
 
 class MentionsListFragment : WebViewFragment() {
     companion object {
-        private const val ARG_MENTIONS_RESULT = "ARG_MENTIONS_RESULT"
         fun newFragment() = MentionsListFragment()
 
         private const val FILECHOOSER_RESULTCODE = 1
@@ -58,13 +56,6 @@ class MentionsListFragment : WebViewFragment() {
     private var mWebviewexternals: WebViewExternals? = null
     private var buttonsPanel: FrameLayout? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        if (savedInstanceState != null) {
-            if (savedInstanceState.containsKey(ARG_MENTIONS_RESULT))
-                mentionsResult = savedInstanceState.getSerializable(ARG_MENTIONS_RESULT) as MentionsResult
-        }
-    }
 
     @Suppress("unused")
     @JavascriptInterface
@@ -135,38 +126,25 @@ class MentionsListFragment : WebViewFragment() {
         body_webview.settings.defaultFontSize = Preferences.Topic.getFontSize()
         body_webview.addJavascriptInterface(this, "HTMLOUT")
         body_webview.loadDataWithBaseURL("http://4pda.ru/forum/", "<html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\">" +
-                "</head><body bgcolor=" + AppTheme.currentBackgroundColorHtml + "></body></html>", "text/html", "UTF-8", null)
+                "</head><body bgcolor=" + App.getInstance().currentBackgroundColorHtml + "></body></html>", "text/html", "UTF-8", null)
         registerForContextMenu(body_webview)
         buttonsPanel = findViewById(R.id.buttonsPanel) as FrameLayout
     }
 
+    private var mTask: LoadResultTask? = null
 
     fun load(startNum: Int) {
-        setLoading(true)
-        InternetConnection.instance.loadDataOnInternetConnected {
-            GlobalScope.launch(Dispatchers.IO) {
-                try {
-                    val pageBody = Client.getInstance()
-                            .performGet("${URL}&st=$startNum")
-                            .responseBody
-                    Client.getInstance().check(pageBody)
+        val runnable = Runnable {
 
-                    val mentions = MentionsParser.instance.parseMentions(pageBody)
-                    val body = MentionsHtmlBuilder(mentions).build()
-                    withContext(Dispatchers.Main) {
-                        setLoading(false)
-
-                        setMentionsResult(mentions)
-                        showHtmlBody(body)
-                    }
-                    Client.getInstance().check(Client.getInstance()
-                            .performGet(URL)
-                            .responseBody)
-                } catch (ex: Throwable) {
-                    AppLog.e(ex)
-                }
-            }
+            mTask = LoadResultTask(this, startNum)
+            mTask!!.execute()
         }
+        if (mTask != null && mTask!!.status != AsyncTask.Status.FINISHED)
+            mTask!!.cancel(false)
+        else {
+            runnable.run()
+        }
+
     }
 
     override fun getContext(): Context? {
@@ -197,7 +175,7 @@ class MentionsListFragment : WebViewFragment() {
         return mWebviewexternals!!.dispatchKeyEvent(event)
     }
 
-    private fun showHtmlBody(body: String?) {
+    fun showHtmlBody(body: String?) {
         try {
             body_webview.loadDataWithBaseURL("http://4pda.ru/forum/", body, "text/html", "UTF-8", null)
             if (buttonsPanel!!.translationY != 0f)
@@ -374,13 +352,48 @@ class MentionsListFragment : WebViewFragment() {
 
     private var mentionsResult: MentionsResult? = null
 
-    private fun setMentionsResult(mentionsResult: MentionsResult?) {
+    fun setMentionsResult(mentionsResult: MentionsResult?) {
         this.mentionsResult = mentionsResult
     }
+}
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        if (mentionsResult != null)
-            outState.putSerializable(ARG_MENTIONS_RESULT, mentionsResult)
+private class LoadResultTask(fragment: MentionsListFragment, private val m_Page: Int) : AsyncTask<String, String, Boolean>() {
+    private var ex: Throwable? = null
+
+    private var body: String? = null
+    private var mentionsResult: MentionsResult? = null
+    private var fragment: WeakReference<MentionsListFragment> = WeakReference(fragment)
+
+    override fun doInBackground(vararg params: String): Boolean? {
+        try {
+            if (this.isCancelled) return false
+
+            val pageBody = Client.getInstance().preformGetWithProgress("${MentionsListFragment.URL}&st=$m_Page", null).responseBody
+            Client.getInstance().check(pageBody)
+
+            mentionsResult = MentionsParser.instance.parseMentions(pageBody)
+            body = MentionsHtmlBuilder(mentionsResult!!).build()
+            return true
+        } catch (e: Throwable) {
+            //Log.e(getContext(), e);
+            ex = e
+            return false
+        }
+    }
+
+    override fun onPreExecute() {
+        super.onPreExecute()
+        this.fragment.get()?.setLoading(true)
+    }
+
+    override fun onPostExecute(success: Boolean?) {
+        this.fragment.get()?.setMentionsResult(mentionsResult)
+        this.fragment.get()?.setLoading(false)
+        this.fragment.get()?.showHtmlBody(body)
+
+        if (ex != null)
+            AppLog.e(App.getInstance(), ex)
+
+        super.onPostExecute(success)
     }
 }

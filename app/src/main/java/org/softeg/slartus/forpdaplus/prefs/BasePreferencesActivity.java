@@ -14,7 +14,6 @@ import android.util.AttributeSet;
 import android.view.View;
 
 import org.softeg.slartus.forpdaplus.App;
-import org.softeg.slartus.forpdaplus.AppTheme;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,11 +26,11 @@ public class BasePreferencesActivity extends PreferenceActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        setTheme(AppTheme.getPrefsThemeStyleResID());
+        setTheme(App.getInstance().getPrefsThemeStyleResID());
         super.onCreate(savedInstanceState);
         if (App.getInstance().getPreferences().getBoolean("coloredNavBar", true) &&
                 android.os.Build.VERSION.SDK_INT >= 21)
-            getWindow().setNavigationBarColor(App.getInstance().getResources().getColor(AppTheme.getNavBarColor()));
+            getWindow().setNavigationBarColor(App.getInstance().getResources().getColor(App.getInstance().getNavBarColor()));
     }
 
     @Override

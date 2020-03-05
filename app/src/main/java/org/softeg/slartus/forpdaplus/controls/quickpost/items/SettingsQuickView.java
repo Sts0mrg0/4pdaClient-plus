@@ -11,7 +11,6 @@ import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 
 import org.softeg.slartus.forpdaplus.App;
-import org.softeg.slartus.forpdaplus.AppTheme;
 import org.softeg.slartus.forpdaplus.MainActivity;
 import org.softeg.slartus.forpdaplus.R;
 import org.softeg.slartus.forpdaplus.fragments.topic.editpost.EditPostFragment;
@@ -45,7 +44,7 @@ public class SettingsQuickView extends BaseQuickView {
     View createView() {
 
         LinearLayout linearLayout = new LinearLayout(getContext());
-        linearLayout.setBackgroundResource(AppTheme.getThemeBackgroundColorRes());
+        linearLayout.setBackgroundResource(App.getInstance().getThemeBackgroundColorRes());
         linearLayout.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         linearLayout.setOrientation(LinearLayout.VERTICAL);
 
@@ -53,7 +52,12 @@ public class SettingsQuickView extends BaseQuickView {
         enableEmotics = new AppCompatCheckBox(getContext());
         enableEmotics.setText(R.string.enable_smiles);
         enableEmotics.setChecked(Preferences.Topic.Post.getEnableEmotics());
-        enableEmotics.setOnCheckedChangeListener((compoundButton, b) -> Preferences.Topic.Post.setEnableEmotics(b));
+        enableEmotics.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                Preferences.Topic.Post.setEnableEmotics(b);
+            }
+        });
         enableEmotics.setLayoutParams(params);
         linearLayout.addView(enableEmotics);
 

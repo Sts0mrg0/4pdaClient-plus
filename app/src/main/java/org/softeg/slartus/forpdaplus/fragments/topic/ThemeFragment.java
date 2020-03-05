@@ -19,7 +19,6 @@ import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
-import android.view.ActionMode;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -45,7 +44,6 @@ import org.softeg.slartus.forpdaapi.TopicApi;
 import org.softeg.slartus.forpdacommon.NotReportException;
 import org.softeg.slartus.forpdacommon.PatternExtensions;
 import org.softeg.slartus.forpdaplus.App;
-import org.softeg.slartus.forpdaplus.AppTheme;
 import org.softeg.slartus.forpdaplus.Client;
 import org.softeg.slartus.forpdaplus.IntentActivity;
 import org.softeg.slartus.forpdaplus.MainActivity;
@@ -275,7 +273,7 @@ public class ThemeFragment extends WebViewFragment implements BricksListDialogFr
         view = inflater.inflate(R.layout.theme, container, false);
         ButterKnife.bind(this, view);
         initSwipeRefreshLayout();
-        lastStyle = AppTheme.getThemeCssFileName();
+        lastStyle = App.getInstance().getThemeCssFileName();
         LoadsImagesAutomatically = null;
 
         getMainActivity().setDefaultKeyMode(Activity.DEFAULT_KEYS_SEARCH_LOCAL);// чтобы поиск начинался при вводе текста
@@ -335,11 +333,6 @@ public class ThemeFragment extends WebViewFragment implements BricksListDialogFr
             setFabColors(fab);
             fab.setOnClickListener(view1 -> toggleMessagePanelVisibility());
         }
-        initWebView();
-        return view;
-    }
-
-    private void initWebView() {
         registerForContextMenu(webView);
         setWebViewSettings();
         webView.getSettings().setDomStorageEnabled(true);
@@ -359,17 +352,7 @@ public class ThemeFragment extends WebViewFragment implements BricksListDialogFr
 
         setHideArrows(Preferences.isHideArrows());
         webView.addJavascriptInterface(new ForPdaWebInterface(this), ForPdaWebInterface.NAME);
-
-        webView.setActionModeListener((actionMode, callback, type) -> {
-            Menu menu = actionMode.getMenu();
-            menu.add(R.string.quote)
-                    .setOnMenuItemClickListener(item -> {
-                        webView.evalJs("htmlOutSelectionPostInfo();");
-                        actionMode.finish();
-                        return true;
-                    })
-                    .setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        });
+        return view;
     }
 
     @Override
@@ -430,8 +413,7 @@ public class ThemeFragment extends WebViewFragment implements BricksListDialogFr
                 if (sessionHistory.getBody() == null) {
                     showTheme(sessionHistory.getUrl());
                 } else {
-                    String body = sessionHistory.getBody().replace(savedInstanceState.getString("LastStyle"),
-                            AppTheme.getThemeCssFileName());
+                    String body = sessionHistory.getBody().replace(savedInstanceState.getString("LastStyle"), App.getInstance().getThemeCssFileName());
                     showBody(body);
                     sessionHistory.setBody(body);
                 }
@@ -691,7 +673,7 @@ public class ThemeFragment extends WebViewFragment implements BricksListDialogFr
     public void showTopicAttaches() {
         if (m_Topic == null)
             return;
-        TopicAttachmentListFragment.showActivity(m_Topic.getId());
+        TopicAttachmentListFragment.showActivity(getMainActivity(), m_Topic.getId());
     }
 
     private void doSearch(String query) {
@@ -807,7 +789,7 @@ public class ThemeFragment extends WebViewFragment implements BricksListDialogFr
 
     public void clear(Boolean clearChache) {
         webView.setWebViewClient(null);
-        webView.loadData("<html><head></head><body bgcolor=" + AppTheme.getCurrentBackgroundColorHtml() + "></body></html>", "text/html", "UTF-8");
+        webView.loadData("<html><head></head><body bgcolor=" + App.getInstance().getCurrentBackgroundColorHtml() + "></body></html>", "text/html", "UTF-8");
         if (clearChache)
             webView.clearCache(true);
         if (m_Topic != null)
@@ -826,14 +808,6 @@ public class ThemeFragment extends WebViewFragment implements BricksListDialogFr
         m_PostBody = postBody;
     }
 
-    public void insertQuote(CharSequence postId, CharSequence postDate, CharSequence userNick, CharSequence text) {
-        String endQuote = "\n[/quote]";
-        final String fullQuoteText = "[quote name=\"" + userNick + "\" date=\"" + postDate + "\" post=\"" + postId + "\"]\n" + text + endQuote;
-        int selectedIndex = -1;//fullQuoteText.length() - endQuote.length(); //наверное , лучше курсор в конец всё же ставить
-        getMainActivity().runOnUiThread(() -> new Handler().post(() ->
-                insertTextToPost(fullQuoteText, selectedIndex)));
-    }
-
     @SuppressWarnings("unused")
     @JavascriptInterface
     public void quote(final String forumId, final String topicId, final String postId, final String postDate, String userId, String userNick) {
@@ -841,7 +815,8 @@ public class ThemeFragment extends WebViewFragment implements BricksListDialogFr
         final String mUserNick = userNick.replace("\"", "\\\"");
         CharSequence clipboardText = StringUtils.fromClipboard(App.getContext());
         if (TextUtils.isEmpty(clipboardText)) {
-            insertQuote(postId, finalPostDate, mUserNick, "");
+            getMainActivity().runOnUiThread(() -> new Handler().post(() ->
+                    insertTextToPost("[quote name=\"" + mUserNick + "\" date=\"" + finalPostDate + "\" post=\"" + postId + "\"]\n\n[/quote]")));
             return;
         }
 
@@ -854,10 +829,12 @@ public class ThemeFragment extends WebViewFragment implements BricksListDialogFr
                 .itemsCallback((dialog, view1, i, titles1) -> {
                     switch (i) {
                         case 0:
-                            insertQuote(postId, finalPostDate, mUserNick, "");
+                            getMainActivity().runOnUiThread(() ->
+                                    new Handler().post(() -> insertTextToPost("[quote name=\"" + mUserNick + "\" date=\"" + finalPostDate + "\" post=\"" + postId + "\"]\n\n[/quote]")));
                             break;
                         case 1:
-                            insertQuote(postId, finalPostDate, mUserNick, finalClipboardText);
+                            getMainActivity().runOnUiThread(() ->
+                                    new Handler().post(() -> insertTextToPost("[quote name=\"" + mUserNick + "\" date=\"" + finalPostDate + "\" post=\"" + postId + "\"]\n" + finalClipboardText + "\n[/quote]")));
                             break;
                     }
                 })
@@ -1154,8 +1131,8 @@ public class ThemeFragment extends WebViewFragment implements BricksListDialogFr
         UserReputationFragment.showActivity(userId, false);
     }
 
-    public void insertTextToPost(final String text, Integer cursorPosition) {
-        mQuickPostFragment.insertTextToPost(text, cursorPosition);
+    public void insertTextToPost(final String text) {
+        mQuickPostFragment.insertTextToPost(text);
         showMessagePanel();
     }
 

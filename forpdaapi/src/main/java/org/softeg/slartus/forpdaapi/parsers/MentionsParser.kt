@@ -1,9 +1,7 @@
 package org.softeg.slartus.forpdaapi.parsers
 
-import android.text.TextUtils
 import org.softeg.slartus.forpdaapi.vo.MentionsResult
-import java.io.Serializable
-import java.net.URI
+
 import java.util.regex.Pattern
 
 /**
@@ -42,6 +40,7 @@ class MentionsParser private constructor() {
         val matcher = mentionsPattern.matcher(body)
         val items = ArrayList<MentionItem>()
         while (matcher.find()) {
+
             val topicUrl = matcher.group(1)
             val topicTitle = matcher.group(2)
             val dateTime = matcher.group(3)
@@ -49,7 +48,7 @@ class MentionsParser private constructor() {
             val userId = matcher.group(5)
             val userName = matcher.group(6)
             val postBody = matcher.group(7)
-            items.add(MentionItem(topicUrl, topicTitle, dateTime, userState, userId, userName, postBody))
+            items.add(MentionItem(topicUrl,topicTitle, dateTime, userState, userId, userName, postBody))
         }
 
 
@@ -92,4 +91,4 @@ class MentionItem(
         val userState: String,
         val userId: String,
         val userName: String,
-        val body: String) : Serializable
+        val body: String)

@@ -4,7 +4,7 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal">
 
-    <EditText
+    <EditText xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:singleLine="true"
@@ -15,6 +15,8 @@
         android:capitalize="none"
         android:autoText="false"
         android:layout_alignParentTop="true"
-        android:id="@+id/editText"
-         />
+        android:layout_toRightOf="@+id/btnPrevSearch"
+        android:layout_toLeftOf="@+id/btnNextSearch"
+        android:layout_alignBottom="@+id/btnPrevSearch"
+        android:id="@+id/editText" />
 </RelativeLayout>

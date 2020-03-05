@@ -11,7 +11,6 @@ import android.webkit.WebViewClient;
 import android.widget.Toast;
 
 import org.softeg.slartus.forpdaplus.App;
-import org.softeg.slartus.forpdaplus.AppTheme;
 import org.softeg.slartus.forpdaplus.IntentActivity;
 import org.softeg.slartus.forpdaplus.R;
 import org.softeg.slartus.forpdaplus.classes.BrowserViewsFragmentActivity;
@@ -82,7 +81,7 @@ public class StyleInfoActivity extends BrowserViewsFragmentActivity {
     }
 
     private void showStyle(String stylePath) {
-        stylePath = AppTheme.getThemeCssFileName(stylePath);
+        stylePath = App.getInstance().getThemeCssFileName(stylePath);
         String xmlPath = stylePath.replace(".css", ".xml");
         CssStyle cssStyle = CssStyle.parseStyle(this, xmlPath);
         if (!cssStyle.ExistsInfo) {

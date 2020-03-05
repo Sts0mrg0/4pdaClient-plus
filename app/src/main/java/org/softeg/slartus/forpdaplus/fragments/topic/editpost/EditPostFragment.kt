@@ -25,10 +25,6 @@ import android.view.*
 import android.widget.*
 import com.afollestad.materialdialogs.MaterialDialog
 import io.paperdb.Paper
-import io.reactivex.Single
-import io.reactivex.disposables.Disposable
-import io.reactivex.subjects.SingleSubject
-import kotlinx.android.synthetic.main.edit_post_plus.*
 import org.softeg.slartus.forpdaapi.post.EditAttach
 import org.softeg.slartus.forpdaapi.post.EditPost
 import org.softeg.slartus.forpdaapi.post.PostApi
@@ -38,10 +34,10 @@ import org.softeg.slartus.forpdaplus.MainActivity
 import org.softeg.slartus.forpdaplus.R
 import org.softeg.slartus.forpdaplus.classes.FilePath
 import org.softeg.slartus.forpdaplus.common.AppLog
-import org.softeg.slartus.forpdaplus.common.TrueQueue
 import org.softeg.slartus.forpdaplus.controls.quickpost.PopupPanelView
 import org.softeg.slartus.forpdaplus.fragments.GeneralFragment
 import org.softeg.slartus.forpdaplus.fragments.topic.PostPreviewFragment
+import org.softeg.slartus.forpdaplus.fragments.topic.SessionHistory
 import org.softeg.slartus.forpdaplus.fragments.topic.ThemeFragment
 import org.softeg.slartus.forpdaplus.fragments.topic.editpost.tasks.*
 import org.softeg.slartus.forpdaplus.prefs.Preferences
@@ -51,6 +47,7 @@ import java.util.*
  * Created by radiationx on 30.10.15.
  */
 class EditPostFragment : GeneralFragment(), EditPostFragmentListener {
+   
 
 
     private var txtPost: EditText? = null
@@ -82,6 +79,7 @@ class EditPostFragment : GeneralFragment(), EditPostFragmentListener {
 
     private val editReasonText: String
         get() = if (txtPostEditReason!!.text == null) "" else txtPostEditReason!!.text.toString()
+
 
 
     private var mSearchTimer: Timer? = null
@@ -199,7 +197,6 @@ class EditPostFragment : GeneralFragment(), EditPostFragmentListener {
                     txtPost!!.setSelection(txtPost!!.text.length)
                 }
             }
-            layout_edit_reason?.visibility = if (isNewPost) View.GONE else View.VISIBLE
             setDataFromExtras(args.getBundle("extras"))
 
             startLoadPost(forumId, topicId, postId, authKey)
@@ -232,50 +229,25 @@ class EditPostFragment : GeneralFragment(), EditPostFragmentListener {
         return false
     }
 
-    private fun checkMail(): Single<Boolean> {
+    private fun sendMail() {
         if (emptyText) {
             val toast = Toast.makeText(context, R.string.enter_message, Toast.LENGTH_SHORT)
             toast.setGravity(Gravity.TOP, 0, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 64f, App.getInstance().resources.displayMetrics).toInt())
             toast.show()
-            return Single.just(false)
+            return
         }
-        return Single.just(true)
-    }
-
-    private fun confirmSendMail(): Single<Boolean> {
-        val result = SingleSubject.create<Boolean>()
+        val body = postText
         if (Preferences.Topic.getConfirmSend()) {
-            val dialog = MaterialDialog.Builder(context!!)
+            MaterialDialog.Builder(context!!)
                     .title(R.string.is_sure)
                     .content(R.string.confirm_sending)
                     .positiveText(R.string.ok)
-                    .onPositive { _, _ -> result.onSuccess(true) }
+                    .onPositive { _, _ -> sendPost(body, editReasonText) }
                     .negativeText(R.string.cancel)
                     .show()
-            dialog.setOnDismissListener {
-                result.onSuccess(false)
-            }
         } else {
-            result.onSuccess(false)
+            sendPost(body, editReasonText)
         }
-        return result
-    }
-
-    private fun sendMail() {
-        val body = postText
-        addToDisposable(
-                TrueQueue(
-                        { d: Disposable? -> addToDisposable(d) },
-                        listOf({ checkMail() }, { confirmSendMail() }))
-                        .subscribe(
-                                {
-                                    if (it)
-                                        sendPost(body, editReasonText)
-                                },
-                                {
-                                    AppLog.e(it)
-                                }
-                        ))
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -328,32 +300,32 @@ class EditPostFragment : GeneralFragment(), EditPostFragmentListener {
         txtPost!!.setSelection(txtPost!!.text.length)
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.edit_reason_item -> {
-                toggleEditReasonDialog()
-                return true
-            }
-            R.id.preview_item -> {
-                val tabItem = App.getInstance().getTabByUrl("preview_" + tag!!)
-                if (tabItem == null) {
-                    PostPreviewFragment.showSpecial(postText, tag)
-                } else {
-                    (tabItem.fragment as PostPreviewFragment).load(postText)
-                    mainActivity.selectTab(tabItem)
-                    mainActivity.hidePopupWindows()
-                }
-                return true
-            }
-        }
-        return super.onOptionsItemSelected(item)
-    }
-
     override fun onCreateOptionsMenu(menu: Menu?, inflater: MenuInflater?) {
         super.onCreateOptionsMenu(menu, inflater)
-        inflater?.inflate(R.menu.edit_post, menu)
-        menu?.findItem(R.id.find_in_text_item)?.setActionView(R.layout.action_collapsible_search)
-        searchEditText = menu?.findItem(R.id.find_in_text_item)?.actionView?.findViewById(R.id.editText)
+        var item: MenuItem
+
+        if (!isNewPost) {
+            item = menu!!.add(R.string.reason_for_editing).setIcon(R.drawable.pencil)
+            item.setOnMenuItemClickListener {
+                toggleEditReasonDialog()
+                true
+            }
+            item.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+        }
+        menu!!.add(R.string.preview).setOnMenuItemClickListener {
+            val tabItem = App.getInstance().getTabByUrl("preview_" + tag!!)
+            if (tabItem == null) {
+                PostPreviewFragment.showSpecial(postText, tag)
+            } else {
+                (tabItem.fragment as PostPreviewFragment).load(postText)
+                mainActivity.selectTab(tabItem)
+                mainActivity.hidePopupWindows()
+            }
+            true
+        }
+        item = menu.add(R.string.find_in_text)
+        item.setActionView(R.layout.action_collapsible_search)
+        searchEditText = item.actionView.findViewById(R.id.editText)
         searchEditText?.setOnKeyListener { _, keyCode, keyEvent ->
             if (keyEvent.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_ENTER) {
                 val text = if (searchEditText?.text == null) "" else searchEditText?.text.toString().trim { it <= ' ' }
@@ -374,16 +346,8 @@ class EditPostFragment : GeneralFragment(), EditPostFragmentListener {
 
             override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
         })
-    }
 
-    override fun onPrepareOptionsMenu(menu: Menu?) {
-        super.onPrepareOptionsMenu(menu)
-        menu?.findItem(R.id.edit_reason_item)?.isVisible = !isNewPost
-
-        if (!supportActionBar!!.isShowing) {
-            supportActionBar!!.show()
-            mBottompanel!!.visibility = View.VISIBLE
-        }
+        item.setShowAsAction(MenuItem.SHOW_AS_ACTION_COLLAPSE_ACTION_VIEW)
     }
 
     private fun showAttachesListDialog() {
@@ -440,7 +404,7 @@ class EditPostFragment : GeneralFragment(), EditPostFragmentListener {
                             .alwaysCallMultiChoiceCallback()
                             .show()
                 }
-
+                
                 .negativeText(R.string.cancel)
                 .build()
         mAttachesListDialog!!.show()
@@ -581,7 +545,7 @@ class EditPostFragment : GeneralFragment(), EditPostFragmentListener {
     private fun sendPost(text: String, editPostReason: String) {
 
         if (isNewPost) {
-            PostTask(this, mEditpost, text, editPostReason,
+            PostTask(this,mEditpost, text, editPostReason,
                     Preferences.Topic.Post.getEnableEmotics(), Preferences.Topic.Post.getEnableSign())
                     .execute()
         } else {
@@ -592,7 +556,7 @@ class EditPostFragment : GeneralFragment(), EditPostFragmentListener {
     }
 
     private fun toggleEditReasonDialog() {
-        layout_edit_reason?.visibility = if (layout_edit_reason?.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+        txtPostEditReason?.visibility = if (txtPostEditReason?.visibility == View.VISIBLE) View.GONE else View.VISIBLE
     }
 
 
@@ -618,6 +582,8 @@ class EditPostFragment : GeneralFragment(), EditPostFragmentListener {
     private fun refreshAttachmentsInfo() {
         btnAttachments?.text = (mEditpost?.attaches?.size ?: 0).toString()
     }
+
+
 
 
     inner class AttachesAdapter internal constructor(private val content: List<EditAttach>) : RecyclerView.Adapter<AttachesAdapter.AttachViewHolder>() {
@@ -680,6 +646,13 @@ class EditPostFragment : GeneralFragment(), EditPostFragmentListener {
         }
     }
 
+    override fun onPrepareOptionsMenu(menu: Menu?) {
+        super.onPrepareOptionsMenu(menu)
+        if (!supportActionBar!!.isShowing) {
+            supportActionBar!!.show()
+            mBottompanel!!.visibility = View.VISIBLE
+        }
+    }
 
     private fun clearPostHighlight(): Spannable {
         val startSearchSelection = txtPost!!.selectionStart
@@ -726,13 +699,13 @@ class EditPostFragment : GeneralFragment(), EditPostFragmentListener {
         try {
             progressSearch!!.visibility = View.VISIBLE
 
-            searchText = searchText.toLowerCase(Locale.getDefault())
+            searchText = searchText.toLowerCase()
             val raw = clearPostHighlight()
 
             var startSearchSelection = 0
             if (fromSelection)
                 startSearchSelection = txtPost!!.selectionStart + 1
-            val text = raw.toString().toLowerCase(Locale.getDefault())
+            val text = raw.toString().toLowerCase()
 
 
             var findedStartSelection = TextUtils.indexOf(text, searchText, startSearchSelection)

@@ -18,7 +18,6 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import org.softeg.slartus.forpdaapi.IListItem
 import org.softeg.slartus.forpdaplus.App
-import org.softeg.slartus.forpdaplus.AppTheme
 import org.softeg.slartus.forpdaplus.R
 import org.softeg.slartus.forpdaplus.controls.ListViewLoadMoreFooter
 import org.softeg.slartus.forpdaplus.fragments.GeneralFragment
@@ -135,8 +134,8 @@ abstract class BaseListFragment : BaseBrickFragment(), AdapterView.OnItemClickLi
     private fun createSwipeRefreshLayout(view: View): SwipeRefreshLayout {
         val swipeRefreshLayout = view.findViewById<SwipeRefreshLayout>(R.id.ptr_layout)
         swipeRefreshLayout.setOnRefreshListener { loadData(true) }
-        swipeRefreshLayout.setColorSchemeResources(AppTheme.mainAccentColor)
-        swipeRefreshLayout.setProgressBackgroundColorSchemeResource(AppTheme.swipeRefreshBackground)
+        swipeRefreshLayout.setColorSchemeResources(App.getInstance().mainAccentColor)
+        swipeRefreshLayout.setProgressBackgroundColorSchemeResource(App.getInstance().swipeRefreshBackground)
         return swipeRefreshLayout
     }
 

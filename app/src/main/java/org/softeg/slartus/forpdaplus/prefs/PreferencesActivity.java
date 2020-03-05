@@ -45,7 +45,6 @@ import com.karumi.dexter.listener.single.PermissionListener;
 import org.softeg.slartus.forpdacommon.ExternalStorage;
 import org.softeg.slartus.forpdacommon.NotReportException;
 import org.softeg.slartus.forpdaplus.App;
-import org.softeg.slartus.forpdaplus.AppTheme;
 import org.softeg.slartus.forpdaplus.Client;
 import org.softeg.slartus.forpdaplus.R;
 import org.softeg.slartus.forpdaplus.classes.FilePath;
@@ -702,7 +701,7 @@ public class PreferencesActivity extends BasePreferencesActivity {
         private void showStylesDialog() {
 
             try {
-                final String currentValue = AppTheme.getCurrentTheme();
+                final String currentValue = App.getInstance().getCurrentTheme();
 
                 ArrayList<CharSequence> newStyleNames = new ArrayList<>();
                 final ArrayList<CharSequence> newstyleValues = new ArrayList<>();
@@ -738,7 +737,7 @@ public class PreferencesActivity extends BasePreferencesActivity {
                                 return;
                             }
                             String stylePath = newstyleValues.get(selected[0]).toString();
-                            stylePath = AppTheme.getThemeCssFileName(stylePath);
+                            stylePath = App.getInstance().getThemeCssFileName(stylePath);
                             String xmlPath = stylePath.replace(".css", ".xml");
                             CssStyle cssStyle = CssStyle.parseStyle(getActivity(), xmlPath);
                             if (!cssStyle.ExistsInfo) {
@@ -1016,7 +1015,7 @@ public class PreferencesActivity extends BasePreferencesActivity {
             CharSequence styleName = styleNames[i];
             CharSequence styleValue = styleValues[i];
 
-            xmlPath = AppTheme.getThemeCssFileName(styleValue.toString()).replace(".css", ".xml").replace("/android_asset/", "");
+            xmlPath = App.getInstance().getThemeCssFileName(styleValue.toString()).replace(".css", ".xml").replace("/android_asset/", "");
             cssStyle = CssStyle.parseStyleFromAssets(context, xmlPath);
             if (cssStyle.ExistsInfo)
                 styleName = cssStyle.Title;

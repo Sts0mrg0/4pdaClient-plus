@@ -39,6 +39,7 @@ import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Response;
+import ru.slartus.http.AppResponse;
 import ru.slartus.http.Http;
 
 /**
@@ -105,19 +106,16 @@ public class DownloadsService extends IntentService {
                                     context1.finish();
                                 break;
                             case "1": // системный
-                                if (ContextCompat.checkSelfPermission(context1, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
-                                    Toast.makeText(context1, R.string.no_permission, Toast.LENGTH_SHORT).show();
-                                else
-                                    new GetTempUrlTask(context1, uri -> {
-                                        try {
-                                            systemDownload(context1, FileUtils.getFileNameFromUrl(url), uri.toString());
-                                            if (finish)
-                                                context1.finish();
-                                        } catch (Throwable e) {
-                                            AppLog.e(context1, e);
-                                        }
-                                    })
-                                            .execute(url);
+                                new GetTempUrlTask(context1, uri -> {
+                                    try {
+                                        systemDownload(context1, FileUtils.getFileNameFromUrl(url), uri.toString());
+                                        if (finish)
+                                            context1.finish();
+                                    } catch (Throwable e) {
+                                        AppLog.e(context1, e);
+                                    }
+                                })
+                                        .execute(url);
 
                                 break;
                             case "2":
@@ -156,7 +154,6 @@ public class DownloadsService extends IntentService {
         request.addRequestHeader("Cookie", sb.toString());
         request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
 
-        assert dm != null;
         dm.enqueue(request);
     }
 
